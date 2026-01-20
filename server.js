@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors({
-  origin: "https://weather-frontend-nine-blush.vercel.app/",
+  origin: "https://weather-frontend-nine-blush.vercel.app",
   credentials: true
 }));
 app.use(express.json());
