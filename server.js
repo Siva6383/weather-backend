@@ -9,40 +9,55 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(cors({
+  origin: "https://weather-frontend-nine-blush.vercel.app/",
+  credentials: true
+}));
 app.use(express.json());
 
+const [dbName] = await db.query("SELECT DATABASE() AS db");
+console.log("📌 Connected Database:", dbName[0].db);
 
 // ✅ Signup API
 app.post("/signup", async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    console.log("Signup request:", username, email);
+    console.log("📩 Signup request received:", username, email);
 
     const [existingUser] = await db.query(
       "SELECT * FROM users WHERE email = ?",
       [email]
     );
 
+    console.log("🔍 Existing user result:", existingUser);
+
     if (existingUser.length > 0) {
       return res.status(400).json({ message: "User already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log("🔐 Password hashed");
 
-    await db.query(
+    const [tableInfo] = await db.query("SHOW CREATE TABLE users");
+console.log("📋 Users Table:", tableInfo[0]["Create Table"]);
+
+
+    const result = await db.query(
       "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
       [username, email, hashedPassword]
     );
+
+    console.log("✅ Insert result:", result);
 
     res.status(201).json({ message: "Signup successful" });
 
   } catch (error) {
     console.error("❌ Signup Error:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
+
 
 
 
@@ -88,6 +103,6 @@ app.get("/", (req, res) => {
 });
 
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
