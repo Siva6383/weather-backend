@@ -7,6 +7,7 @@ import db from "./db.js";
 dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
@@ -17,7 +18,8 @@ app.post("/signup", async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Check if user exists
+    console.log("Signup request:", username, email);
+
     const [existingUser] = await db.query(
       "SELECT * FROM users WHERE email = ?",
       [email]
@@ -27,10 +29,8 @@ app.post("/signup", async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert user
     await db.query(
       "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
       [username, email, hashedPassword]
@@ -39,10 +39,11 @@ app.post("/signup", async (req, res) => {
     res.status(201).json({ message: "Signup successful" });
 
   } catch (error) {
-    console.error(error);
+    console.error("❌ Signup Error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 
 // ✅ Login API
@@ -87,6 +88,6 @@ app.get("/", (req, res) => {
 });
 
 
-app.listen(process.env.PORT, () => {
-  console.log(`✅ Server running on port ${process.env.PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server running on port ${PORT}`);
 });
