@@ -2,80 +2,77 @@ import express from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
-import db from "./db.js";
+import connectDB from "./db.js";
+import User from "./models/User.js";
 
 dotenv.config();
+connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://weather-frontend-nine-blush.vercel.app",
+];
 
 app.use(cors({
-  origin: "https://weather-frontend-nine-blush.vercel.app",
+  origin: [
+    "http://localhost:5173",
+    "https://weather-frontend-nine-blush.vercel.app"
+  ],
   credentials: true
 }));
 app.use(express.json());
 
-const [dbName] = await db.query("SELECT DATABASE() AS db");
-console.log("📌 Connected Database:", dbName[0].db);
+// ✅ Test Route
+app.get("/", (req, res) => {
+  res.send("Auth backend running 🚀");
+});
 
-// ✅ Signup API
+// ✅ Signup
 app.post("/signup", async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    console.log("📩 Signup request received:", username, email);
+    console.log("📩 Signup:", username, email);
 
-    const [existingUser] = await db.query(
-      "SELECT * FROM users WHERE email = ?",
-      [email]
-    );
+    const existingUser = await User.findOne({ email });
 
-    console.log("🔍 Existing user result:", existingUser);
-
-    if (existingUser.length > 0) {
+    if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log("🔐 Password hashed");
 
-    const [tableInfo] = await db.query("SHOW CREATE TABLE users");
-console.log("📋 Users Table:", tableInfo[0]["Create Table"]);
+    const newUser = await User.create({
+      username,
+      email,
+      password: hashedPassword,
+    });
 
-
-    const result = await db.query(
-      "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-      [username, email, hashedPassword]
-    );
-
-    console.log("✅ Insert result:", result);
-
-    res.status(201).json({ message: "Signup successful" });
+    res.status(201).json({
+      message: "Signup successful",
+      userId: newUser._id,
+    });
 
   } catch (error) {
     console.error("❌ Signup Error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-
-
-
-// ✅ Login API
+// ✅ Login
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const [user] = await db.query(
-      "SELECT * FROM users WHERE email = ?",
-      [email]
-    );
+    const user = await User.findOne({ email });
 
-    if (user.length === 0) {
+    if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
 
-    const isMatch = await bcrypt.compare(password, user[0].password);
+    const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid password" });
@@ -84,22 +81,16 @@ app.post("/login", async (req, res) => {
     res.status(200).json({
       message: "Login successful",
       user: {
-        id: user[0].id,
-        username: user[0].username,
-        email: user[0].email
-      }
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      },
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("❌ Login Error:", error);
     res.status(500).json({ message: "Server error" });
   }
-});
-
-
-// Test Route
-app.get("/", (req, res) => {
-  res.send("Auth backend running 🚀");
 });
 
 app.listen(PORT, "0.0.0.0", () => {

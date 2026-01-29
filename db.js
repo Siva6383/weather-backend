@@ -1,10 +1,13 @@
-import mysql from "mysql2/promise";
+import mongoose from "mongoose";
 
-const db = mysql.createPool({
-  uri: process.env.MYSQL_URL,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log("✅ MongoDB Atlas connected");
+  } catch (error) {
+    console.error("❌ MongoDB connection failed:", error.message);
+    process.exit(1);
+  }
+};
 
-export default db;
+export default connectDB;
