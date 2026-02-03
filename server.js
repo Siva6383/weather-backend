@@ -61,6 +61,35 @@ app.post("/signup", async (req, res) => {
   }
 });
 
+//Reset Password
+app.post("/reset-password", async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({ message: "All fields required" });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    res.json({ message: "Password updated successfully" });
+
+  } catch (error) {
+    console.error("RESET ERROR:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 // ✅ Login
 app.post("/login", async (req, res) => {
   try {
