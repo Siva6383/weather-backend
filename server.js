@@ -29,6 +29,10 @@ app.get("/", (req, res) => {
   res.send("Auth backend running 🚀");
 });
 
+app.get("/test-reset", (req, res) => {
+  res.send("reset route is live");
+});
+
 // ✅ Signup
 app.post("/signup", async (req, res) => {
   try {
