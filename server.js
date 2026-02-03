@@ -70,22 +70,21 @@ app.post("/reset-password", async (req, res) => {
       return res.status(400).json({ message: "Missing fields" });
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashed = await bcrypt.hash(newPassword, 10);
 
-    const result = await User.findOneAndUpdate(
-      { email },
-      { password: hashedPassword },
-      { new: true }
-    );
+    const user = await User.findOne({ email });
 
-    if (!result) {
+    if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
 
+    user.password = hashed;
+    await user.save();
+
     res.json({ message: "Password updated successfully" });
 
-  } catch (err) {
-    console.error("RESET ERROR:", err);
+  } catch (e) {
+    console.error("RESET FAIL:", e);
     res.status(500).json({ message: "Server error" });
   }
 });
