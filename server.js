@@ -81,38 +81,30 @@ app.post("/forgot-password", async (req, res) => {
     const token = crypto.randomBytes(32).toString("hex");
 
     user.resetToken = token;
-    user.resetTokenExpiry = Date.now() + 15 * 60 * 1000; // 15 min
+    user.resetTokenExpiry = Date.now() + 15 * 60 * 1000;
     await user.save();
-
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
 
     const link = `https://weather-frontend-nine-blush.vercel.app/reset/${token}`;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    // ✅ SENDGRID EMAIL
+    await sgMail.send({
       to: email,
+      from: "sivaharish638349@gmail.com",   // must match verified sender
       subject: "Reset your password",
       html: `
         <h3>Password Reset</h3>
-        <p>Click link below:</p>
+        <p>Click below:</p>
         <a href="${link}">${link}</a>
-      `
+      `,
     });
 
-    res.json({ message: "Reset link sent to email" });
+    res.json({ message: "Reset link sent successfully" });
 
-  } catch (e) {
-    console.error(e);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 //Reset Password
 app.post("/reset-password/:token", async (req, res) => {
