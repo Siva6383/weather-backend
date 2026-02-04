@@ -5,13 +5,14 @@ import dotenv from "dotenv";
 import connectDB from "./db.js";
 import User from "./models/User.js";
 import crypto from "crypto";
-import nodemailer from "nodemailer";
 import sgMail from "@sendgrid/mail";
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+dotenv.config(); // ✅ MUST COME FIRST
 
-dotenv.config();
+sgMail.setApiKey(process.env.SENDGRID_API_KEY); // ✅ now it loads correctly
+
 connectDB();
+
 
 const app = express();
 const PORT = process.env.PORT || 8080;
