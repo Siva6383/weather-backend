@@ -106,7 +106,6 @@ app.post("/forgot-password", async (req, res) => {
   }
 });
 
-//Reset Password
 app.post("/reset-password/:token", async (req, res) => {
   try {
     const { password } = req.body;
@@ -116,7 +115,9 @@ app.post("/reset-password/:token", async (req, res) => {
       resetTokenExpiry: { $gt: Date.now() }
     });
 
-    if (!user) return res.status(400).json({ message: "Token expired" });
+    if (!user) {
+      return res.status(400).json({ message: "Token expired or invalid" });
+    }
 
     user.password = await bcrypt.hash(password, 10);
     user.resetToken = undefined;
@@ -126,7 +127,8 @@ app.post("/reset-password/:token", async (req, res) => {
 
     res.json({ message: "Password updated successfully" });
 
-  } catch (e) {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
