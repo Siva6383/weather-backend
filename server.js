@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import connectDB from "./db.js";
 import User from "./models/User.js";
+import crypto from "crypto";
+import nodemailer from "nodemailer";
 
 dotenv.config();
 connectDB();
@@ -65,30 +67,71 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-//Reset Password
-app.post("/reset-password", async (req, res) => {
+//Forget Password
+app.post("/forgot-password", async (req, res) => {
   try {
-    const { email, newPassword } = req.body;
-
-    if (!email || !newPassword) {
-      return res.status(400).json({ message: "Missing fields" });
-    }
-
-    const hashed = await bcrypt.hash(newPassword, 10);
+    const { email } = req.body;
 
     const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "User not found" });
 
-    if (!user) {
-      return res.status(400).json({ message: "User not found" });
-    }
+    const token = crypto.randomBytes(32).toString("hex");
 
-    user.password = hashed;
+    user.resetToken = token;
+    user.resetTokenExpiry = Date.now() + 15 * 60 * 1000; // 15 min
+    await user.save();
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    const link = `https://weather-frontend-nine-blush.vercel.app/reset/${token}`;
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Reset your password",
+      html: `
+        <h3>Password Reset</h3>
+        <p>Click link below:</p>
+        <a href="${link}">${link}</a>
+      `
+    });
+
+    res.json({ message: "Reset link sent to email" });
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+//Reset Password
+app.post("/reset-password/:token", async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    const user = await User.findOne({
+      resetToken: req.params.token,
+      resetTokenExpiry: { $gt: Date.now() }
+    });
+
+    if (!user) return res.status(400).json({ message: "Token expired" });
+
+    user.password = await bcrypt.hash(password, 10);
+    user.resetToken = undefined;
+    user.resetTokenExpiry = undefined;
+
     await user.save();
 
     res.json({ message: "Password updated successfully" });
 
   } catch (e) {
-    console.error("RESET FAIL:", e);
     res.status(500).json({ message: "Server error" });
   }
 });
