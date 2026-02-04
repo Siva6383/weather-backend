@@ -107,29 +107,33 @@ app.post("/forgot-password", async (req, res) => {
   }
 });
 
+//Reset Password
 app.post("/reset-password/:token", async (req, res) => {
   try {
-    const { password } = req.body;
+    console.log("TOKEN:", req.params.token);
+    console.log("BODY:", req.body);
 
     const user = await User.findOne({
       resetToken: req.params.token,
       resetTokenExpiry: { $gt: Date.now() }
     });
 
+    console.log("FOUND USER:", user);
+
     if (!user) {
-      return res.status(400).json({ message: "Token expired or invalid" });
+      return res.status(400).json({ message: "Token invalid or expired" });
     }
 
-    user.password = await bcrypt.hash(password, 10);
-    user.resetToken = undefined;
-    user.resetTokenExpiry = undefined;
+    user.password = await bcrypt.hash(req.body.password, 10);
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
 
     await user.save();
 
     res.json({ message: "Password updated successfully" });
 
   } catch (err) {
-    console.error(err);
+    console.error("RESET ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
