@@ -6,6 +6,9 @@ import connectDB from "./db.js";
 import User from "./models/User.js";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 dotenv.config();
 connectDB();
